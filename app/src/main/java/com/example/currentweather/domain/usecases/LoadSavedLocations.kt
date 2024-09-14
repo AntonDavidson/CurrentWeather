@@ -7,10 +7,11 @@ import com.example.currentweather.domain.model.weather.Weather
 import com.example.currentweather.ui.viewmodel.weather_view_state.UnitSystem
 import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
-
+private const val TAG="LoadSavedLocations"
 class LoadSavedLocations @Inject constructor(private val weatherRepository: WeatherRepository) {
 
-    operator fun invoke(unitSystem: UnitSystem): Flow<List<Resource<Weather>>> {
+   suspend operator fun invoke(unitSystem: UnitSystem): Flow<List<Resource<Weather>>> {
+        Log.i(TAG, "invoke: load saved locations been called")
         return weatherRepository.loadAllWeatherLocations(unitSystem)
     }
 }

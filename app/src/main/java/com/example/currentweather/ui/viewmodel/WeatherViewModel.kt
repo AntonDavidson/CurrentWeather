@@ -31,7 +31,7 @@ class WeatherViewModel @Inject constructor(
     private val weatherState = MutableStateFlow(WeatherViewState())
     val weather: StateFlow<WeatherViewState> = weatherState
 
-    fun onViewEvent(mainWeatherEvent: MainWeatherEvent) {
+    fun onMainWeatherEvent(mainWeatherEvent: MainWeatherEvent) {
         Log.i(TAG, "onViewEvent: Started")
         when (mainWeatherEvent) {
             is MainWeatherEvent.FetchWeather -> {

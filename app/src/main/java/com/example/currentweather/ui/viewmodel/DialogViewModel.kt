@@ -6,10 +6,12 @@ import androidx.lifecycle.viewModelScope
 import com.example.currentweather.data.remote.Resource
 import com.example.currentweather.domain.usecases.GetImperialWeatherDetails
 import com.example.currentweather.domain.usecases.GetMetricWeatherDetails
+import com.example.currentweather.domain.usecases.SaveLocation
 import com.example.currentweather.ui.viewmodel.events.DialogEvent
 import com.example.currentweather.ui.viewmodel.mappers.ViewWeatherMapper
 import com.example.currentweather.ui.viewmodel.weather_view_state.UnitSystem
 import com.example.currentweather.ui.viewmodel.weather_view_state.WeatherViewState
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -20,9 +22,11 @@ import javax.inject.Inject
 
 private const val TAG = "DialogViewModel"
 
+@HiltViewModel
 class DialogViewModel @Inject constructor(
     private val getImperialWeatherDetails: GetImperialWeatherDetails,
     private val getMetricWeatherDetails: GetMetricWeatherDetails,
+    private val saveLocation: SaveLocation,
     private val viewMapper: ViewWeatherMapper
 ) : ViewModel() {
 
@@ -46,7 +50,9 @@ class DialogViewModel @Inject constructor(
             }
 
             is DialogEvent.SaveLocation -> {
-
+                viewModelScope.launch (Dispatchers.IO){
+                saveLocation(dialogEvent.locationName)
+                }
             }
         }
     }
@@ -130,7 +136,7 @@ class DialogViewModel @Inject constructor(
                             weatherState.emit(
                                 weatherState.value.copy(
                                     loading = false,
-                                    errorMessage = result.error ?: "Unknown Error"
+                                    errorMessage = result.error
                                 )
                             )
                         }

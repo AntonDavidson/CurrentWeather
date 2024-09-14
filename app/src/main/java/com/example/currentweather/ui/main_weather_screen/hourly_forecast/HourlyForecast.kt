@@ -1,11 +1,12 @@
 package com.example.currentweather.ui.main_weather_screen.hourly_forecast
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Divider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -30,7 +31,7 @@ fun HourlyForecastContent(
     ContentCard(modifier) {
         Column {
             ForecastTitle("Daily ApiForecastDay")
-            HorizontalDivider()
+            Divider(modifier = Modifier.fillMaxWidth())
             LazyRow(Modifier.padding(start = 16.dp, end = 16.dp)) {
                 items(hoursList) { item ->
                     HourColumn(item)

@@ -14,7 +14,7 @@ import com.example.currentweather.domain.model.weather.Weather
 import javax.inject.Inject
 
 class MetricMapper @Inject constructor() : DataMapper<ApiWeatherResponse, Weather> {
-    override fun mapToDomain(input: ApiWeatherResponse): Weather {
+    override fun map(input: ApiWeatherResponse): Weather {
         return Weather(
             location = Location(
                 name = input.apiLocation?.name ?: "",

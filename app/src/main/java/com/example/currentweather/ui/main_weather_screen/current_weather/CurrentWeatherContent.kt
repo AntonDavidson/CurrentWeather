@@ -9,9 +9,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.material3.Divider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -144,7 +144,7 @@ fun HighAndLowTemp(weather: ViewWeather) {
                 color = MaterialTheme.colorScheme.onPrimaryContainer
             )
         )
-        VerticalDivider(
+        Divider(
             modifier = Modifier
                 .padding(4.dp)
                 .height(15.dp)

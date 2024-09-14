@@ -2,8 +2,8 @@ package com.example.currentweather.data.repository
 
 import android.util.Log
 import androidx.annotation.WorkerThread
+import com.example.currentweather.data.local.EntityMapper
 import com.example.currentweather.data.local.RoomDao
-import com.example.currentweather.data.local.entity.WeatherEntity
 import com.example.currentweather.data.remote.ApiCall
 import com.example.currentweather.data.remote.Resource
 import com.example.currentweather.data.remote.api.WeatherService
@@ -13,12 +13,14 @@ import com.example.currentweather.domain.model.weather.Weather
 import com.example.currentweather.ui.viewmodel.weather_view_state.UnitSystem
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
-import kotlinx.coroutines.flow.last
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 private const val TAG = "WeatherRepository"
@@ -34,7 +36,6 @@ WeatherRepository @Inject constructor(
     @WorkerThread
     fun getMetricWeatherDetails(params: String): Flow<Resource<Weather>> =
         flow {
-            emit(Resource.Loading())
             Log.i(TAG, "getMetricWeatherDetails: Loading Resource")
             val weatherResponseResource = safeApiCall {
                 Log.i(TAG, "getMetricWeatherDetails: Calling")
@@ -42,62 +43,75 @@ WeatherRepository @Inject constructor(
             }
 
 
-            val weatherMetric =
+            emit(
                 Resource.transform(weatherResponseResource) { weatherForecastResponse ->
                     Log.i(
                         TAG,
                         "getMetricWeatherDetails: raw data ${weatherForecastResponse.apiForecast}"
                     )
-                    metricMapper.mapToDomain(weatherForecastResponse)
-                }
+                    metricMapper.map(weatherForecastResponse)
+                })
 
-            emit(weatherMetric)
 
         }.flowOn(Dispatchers.IO)
 
     @WorkerThread
     fun getImperialWeatherDetails(params: String): Flow<Resource<Weather>> =
         flow {
-            emit(Resource.Loading())
 
             val weatherResponseResource = safeApiCall {
                 weatherService.getForecast(params = params)
             }
 
-            val weatherImperial =
-                Resource.transform(weatherResponseResource) { weatherForecastResponse ->
-                    imperialMapper.mapToDomain(weatherForecastResponse)
-                }
 
-            emit(weatherImperial)
+
+            emit(Resource.transform(weatherResponseResource) { weatherForecastResponse ->
+                imperialMapper.map(weatherForecastResponse)
+            })
+
+
         }.flowOn(Dispatchers.IO)
 
-    fun loadAllWeatherLocations(unitSystem: UnitSystem): Flow<List<Resource<Weather>>> =
+    @WorkerThread
+    suspend fun loadAllWeatherLocations(unitSystem: UnitSystem): Flow<List<Resource<Weather>>> =
         flow {
-            val weatherLocations = weatherDao.getAllWeatherLocations()
-            val loadedLocations = mutableListOf<Resource<Weather>>()
-
-            weatherLocations.last().forEach { location ->
-                val weatherResource = if (unitSystem == UnitSystem.IMPERIAL) {
-                    getImperialWeatherDetails(location.location).first()
-                } else {
-                    getMetricWeatherDetails(location.location).first()
-                }
-                loadedLocations.add(weatherResource)
+            val weatherLocations = withContext(Dispatchers.IO) {
+                weatherDao.getAllWeatherLocations()
+                    .firstOrNull() // Get first non-empty emission or null if still empty
             }
-            emit(loadedLocations)
+            if (weatherLocations.isNullOrEmpty()) {
+                Log.i(TAG, "No weather locations available to load.")
+                emit(emptyList()) // Emit an empty list if no locations are found
+            } else {
+                coroutineScope {
+                    val deferredLocations = weatherLocations.map { location ->
+                        async {
+                            if (unitSystem == UnitSystem.IMPERIAL) {
+                                Log.i(
+                                    TAG,
+                                    "Load All Weather Locations: location: ${location.location}"
+                                )
+                                getImperialWeatherDetails(location.location).first()
+                            } else {
+                                getMetricWeatherDetails(location.location).first()
+                            }
+                        }
+                    }
+                    // Await all async results in parallel and emit the list of loaded locations
+                    val loadedLocations = deferredLocations.awaitAll()
+                    emit(loadedLocations)
+                }
+            }
         }.flowOn(Dispatchers.IO)
 
-    fun saveWeatherLocation(weatherLocation: WeatherEntity) =
-        weatherDao.addWeatherLocation(weatherLocation)
+
+    suspend fun saveWeatherLocation(weatherLocation: String) =
+        weatherDao.addWeatherLocation(EntityMapper().map(weatherLocation))
 
     suspend fun deleteAll() = weatherDao.deleteAll()
 
-    fun deleteWeatherLocation(weatherLocation: WeatherEntity) =
+    suspend fun deleteWeatherLocation(weatherLocation: String) =
         weatherDao.deleteWeatherLocation(weatherLocation)
 
-    fun getWeatherLocation(id: Long) = flow {
-        val location = weatherDao.getWeatherLocation(id)
-        emit(location)
-    }.flowOn(Dispatchers.IO)
+
 }

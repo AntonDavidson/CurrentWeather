@@ -28,12 +28,14 @@ private const val TODAY = 0
 
 @Composable
 fun MainWeatherContent(
+    modifier: Modifier = Modifier,
     viewState: WeatherViewState,
 ) {
 
     val scrollState = rememberLazyListState()
 
     LazyColumn(
+        modifier = modifier,
         verticalArrangement = Arrangement.spacedBy(20.dp),
         state = scrollState,
     ) {

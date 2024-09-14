@@ -6,7 +6,7 @@ import androidx.room.PrimaryKey
 import com.example.currentweather.constants.DB_NAME
 
 @Entity(
-    tableName = DB_NAME
+    tableName = DB_NAME, indices = [Index(value = ["location"], unique = true)]
 )
 data class WeatherEntity(
     val location: String,

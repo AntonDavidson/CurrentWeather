@@ -63,7 +63,7 @@ fun SearchBar(
             disabledContainerColor = MaterialTheme.colorScheme.primary.copy(0.1f),
             focusedContainerColor = MaterialTheme.colorScheme.onPrimaryContainer.copy(0.2f),
             unfocusedContainerColor = MaterialTheme.colorScheme.primaryContainer.copy(0.1f),
-            focusedTextColor = MaterialTheme.colorScheme.onPrimary.copy(0.4f)
+            focusedTextColor = MaterialTheme.colorScheme.onPrimaryContainer.copy(0.4f)
         )
     )
 }

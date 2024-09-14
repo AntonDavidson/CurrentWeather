@@ -1,5 +1,6 @@
 package com.example.currentweather.ui.saved_locations
 
+import android.util.Log
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -10,6 +11,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
@@ -19,19 +21,26 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.currentweather.domain.dummy.Dummy
+import com.example.currentweather.ui.components.SwipeToDeleteContainer
 import com.example.currentweather.ui.components.common.ContentCard
 import com.example.currentweather.ui.image_manager.BackgroundImage
-import com.example.currentweather.ui.viewmodel.events.MainWeatherEvent
+import com.example.currentweather.ui.viewmodel.events.DialogEvent
+import com.example.currentweather.ui.viewmodel.events.SavedLocationsEvent
 import com.example.currentweather.ui.viewmodel.mappers.ViewWeatherMapper
 import com.example.currentweather.ui.viewmodel.weather_view_state.SavedLocationsState
 import com.example.currentweather.ui.viewmodel.weather_view_state.UnitSystem
 import com.example.currentweather.ui.viewmodel.weather_view_state.WeatherViewState
 import com.example.currentweather.ui.viewmodel.weather_view_state.model.ViewWeather
+import com.example.currentweather.ui.weather_dialog.WeatherDialog
 import com.example.currentweather.util.extractHourFromTimeEpochString
+
+private const val TAG = "SavedLocationsScreen"
 
 @Composable
 fun SavedLocationsScreen(
-    viewEvent: (MainWeatherEvent) -> Unit,
+    modifier: Modifier = Modifier,
+    savedLocationsEvent: (SavedLocationsEvent) -> Unit,
+    dialogEvent: (DialogEvent) -> Unit,
     dialogWeatherViewState: WeatherViewState,
     savedLocationsViewState: SavedLocationsState
 ) {
@@ -41,26 +50,63 @@ fun SavedLocationsScreen(
     val showDialog = remember {
         mutableStateOf(false)
     }
+    val loadLocations = remember {
+        mutableStateOf(true)
+    }
+    if (loadLocations.value) {
+        savedLocationsEvent(SavedLocationsEvent.LoadSavedLocations)
+        loadLocations.value = false
+    }
 
-    LazyColumn(contentPadding = PaddingValues(16.dp), content = {
+
+
+    LazyColumn(modifier = modifier, contentPadding = PaddingValues(16.dp), content = {
         item {
             SearchBar(
                 value = searchValue.value,
                 onValueChanged = { searchValue.value = it },
                 onSearchActionClick = {
+                    dialogEvent(DialogEvent.FetchWeather(searchValue.value, UnitSystem.METRIC))
+                    showDialog.value = true
 
                 })
         }
         items(savedLocationsViewState.locations) { location ->
-            SavedLocation(viewCurrentLocationWeather = location)
+            Spacer(modifier = Modifier.height(20.dp))
+            SwipeToDeleteContainer(
+                item = location,
+                onDelete = {
+                    savedLocationsEvent(
+                        SavedLocationsEvent.RemoveLocation(
+                            location.location.name.lowercase().replaceFirstChar { it.uppercase() })
+                    )
+                }) {
+                SavedLocation(viewCurrentLocationWeather = location)
+            }
+            Spacer(modifier = Modifier.height(20.dp))
         }
     })
+    if (showDialog.value) {
+        WeatherDialog(
+            weatherViewState = dialogWeatherViewState,
+            onSaveLocation = {
+                Log.i(TAG, "SavedLocationsScreen: saving ${searchValue.value}")
+                dialogEvent(
+                    DialogEvent.SaveLocation(
+                        locationName = searchValue.value.lowercase()
+                            .replaceFirstChar { it.uppercase() })
+                )
+                savedLocationsEvent(SavedLocationsEvent.LoadSavedLocations)
+            }) {
+            showDialog.value = false
+        }
+    }
 
 }
 
 @Composable
 fun SavedLocation(viewCurrentLocationWeather: ViewWeather) {
-    Spacer(modifier = Modifier.height(20.dp))
+
     ContentCard(
         modifier = Modifier
             .height(200.dp)
@@ -88,7 +134,6 @@ fun SavedLocation(viewCurrentLocationWeather: ViewWeather) {
 
         }
     }
-    Spacer(modifier = Modifier.height(10.dp))
 }
 
 @Composable
@@ -110,7 +155,8 @@ fun LocationsScreenPreview() {
             )
     }
     SavedLocationsScreen(
-        viewEvent = {},
+        dialogEvent = {},
+        savedLocationsEvent = {},
         dialogWeatherViewState = WeatherViewState(weather = ViewWeatherMapper().mapToView(Dummy.imperialDummy)),
         savedLocationsViewState =
         SavedLocationsState(
